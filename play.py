@@ -45,52 +45,56 @@ def detection_worker():
         if pause_detection.is_set():
             # time.sleep(0.01)
             continueFlag = True
-            liveStreamFrameCount = 0
 
         # 检测关注加号
-        if liveStreamFrameCount >= 50:
-            liveStreamFrameCount = 0
-            print("直播帧疑似有点多了")
+        if liveStreamFrameCount >= 10:
+            # print("直播帧疑似有点多了")
             continueFlag = True
         
         if ssimCheck(red, redT) > 0.7 and ssimCheck(white, whiteT)> 0.7:
-            frame = cv2.rectangle(frame, (460, 583), (533, 670), (0,255,0), 10)
+            frameRT = cv2.rectangle(frame, (460, 583), (533, 670), (0,255,0), 10)
             liveStreamFrameCount = 0
         else:
-            frame = cv2.rectangle(frame, (460, 583), (533, 670), (0,0,255), 10)
-            liveStreamFrameCount += 1
+            frameRT = cv2.rectangle(frame, (460, 583), (533, 670), (0,0,255), 10)
+            liveStreamFrameCount = 10 if liveStreamFrameCount >= 10 else liveStreamFrameCount + 1
         
+        frameRT = cv2.putText(frameRT, 'LiveStream = ' + str(liveStreamFrameCount) , (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
         
-        results = model(frame, verbose=False)[0]
-        if results:
-            
-            probs = results.probs
-            classIndex = probs.top1
-            className = results.names[classIndex]
-            classConfidence = probs.data[classIndex]
+        if not pause_detection.is_set() and not continueFlag:
+            results = model(frame, verbose=False)[0]
+            if results:
+                probs = results.probs
+                classIndex = probs.top1
+                className = results.names[classIndex]
+                classConfidence = probs.data[classIndex]
 
-            if className == 'erotic':
-                textColor = (0, 255, 0)
-            else:
-                textColor = (0, 0, 255)
-            
-            frame = cv2.putText(frame,  className + " > "+ str(eroticFrameCount), (350, 530), cv2.FONT_HERSHEY_SIMPLEX, 1, textColor, 2, cv2.LINE_AA)
-            frame = cv2.putText(frame, 'LiveStream > ' + str(liveStreamFrameCount) , (270, 500), cv2.FONT_HERSHEY_SIMPLEX, 1, textColor, 2, cv2.LINE_AA)
-            if classConfidence >= 0.9 and className == 'erotic':
-                eroticFrameCount += 1
-            else:
-                eroticFrameCount = 0
+                if className == 'erotic':
+                    textColor = (0, 255, 0)
+                else:
+                    textColor = (0, 0, 255)
 
-        cv2.imshow('Camera', frame)
+                frameRT = cv2.putText(frameRT, f'{className} : {int(classConfidence * 100)} %' , (10, 130), cv2.FONT_HERSHEY_SIMPLEX, 1, textColor, 2, cv2.LINE_AA)
+
+                frameRT = cv2.putText(frameRT,  className + " = "+ str(eroticFrameCount), (10, 160), cv2.FONT_HERSHEY_SIMPLEX, 1, textColor, 2, cv2.LINE_AA)
+                if classConfidence >= 0.75 and className == 'erotic':
+                    eroticFrameCount += 1
+                else:
+                    eroticFrameCount = 0 if eroticFrameCount < 5 else eroticFrameCount - 5
+        else:
+            frameRT = cv2.putText(frameRT, "INFERENCE PAUSE" , (10, 160), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
+        
+
+        cv2.imshow('CURRENT FRAME', frameRT)
         cv2.imshow('red', red)
         cv2.imshow('white', white)
 
 
-        if eroticFrameCount >= 50 and not continueFlag and liveStreamFrameCount == 0:
+        if eroticFrameCount >= 30 and not continueFlag and liveStreamFrameCount == 0:
             action_queue.put("like")
             action_queue.put("send")
             action_queue.put("next")
             eroticFrameCount = 0
+            liveStreamFrameCount = 0
             startime = time.time()
             continue
     
@@ -98,6 +102,7 @@ def detection_worker():
         if currtime - startime >= randomTimeout:
             action_queue.put("next")
             eroticFrameCount = 0
+            liveStreamFrameCount = 0
             print("不喜欢这个。")
             startime = currtime
             randomTimeout = random.uniform(5, 10)
@@ -114,13 +119,22 @@ def click_worker():
     while True:
         action = action_queue.get()
         if action == "like":
+            pause_detection.set()
             likeThisVideo()
+            pause_detection.clear()
         elif action == "next":
             pause_detection.set()
             nextVideo()
+            # empty queue
+            while not action_queue.empty():
+                action_queue.get()
+            
             pause_detection.clear()
         elif action == "send":
+            pause_detection.set()
             sendToAllFriends()
+            
+            pause_detection.clear()
         elif action == "quit":
             break
         action_queue.task_done()
