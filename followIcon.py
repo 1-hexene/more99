@@ -40,10 +40,11 @@ def ssimCheck(img, template):
 
 
 if __name__ == "__main__":
-    image = cv2.imread('Camera_screenshot_16.05.2025.png')
+    image = cv2.imread('Camera_screenshot_19.05.2025.png')
     redT = cv2.imread('template/red.png', cv2.IMREAD_GRAYSCALE)
     whiteT = cv2.imread('template/white.png', cv2.IMREAD_GRAYSCALE)
     red, white = getRedWhite(image)
+    cv2.imshow("image", image)
     cv2.imshow("white", white)
     cv2.imshow("red", red)
     cv2.imshow("whiteT", whiteT)

@@ -16,6 +16,7 @@ while True:
     if not ret:
         continue
     frame = scaleImage(frame, 0.5)
+    cv2.imshow('Camera', frame)
 
     red, white = getRedWhite(frame)
     
@@ -26,7 +27,7 @@ while True:
         frame = cv2.rectangle(frame, (460, 583), (533, 670), (0,0,255), 10)
 
     # Display the captured frame
-    cv2.imshow('Camera', frame)
+    cv2.imshow('Camera1', frame)
     cv2.imshow('red', red)
     cv2.imshow('white', white)
     # Press 'q' to exit the loop
