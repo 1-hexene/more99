@@ -5,7 +5,7 @@ import threading
 import queue
 from ultralytics import YOLO
 import cv2
-from followIcon import getRedWhite, ssimCheck
+from followIcon import follow_icon_Check
 from Clicks import *
 
 # 创建队列用于线程间通信
@@ -23,13 +23,12 @@ def detection_worker():
     results = None
     model = YOLO("runs/classify/train/weights/best.pt")
     cam = cv2.VideoCapture(0)
-    redT = cv2.imread('template/red.png', cv2.IMREAD_GRAYSCALE)
-    whiteT = cv2.imread('template/white.png', cv2.IMREAD_GRAYSCALE)
+    follow_icon = scaleImage(cv2.imread('template/original_fc.png', cv2.IMREAD_GRAYSCALE), 0.39)
 
     eroticFrameCount = 0
     liveStreamFrameCount = 0
     startime = time.time()
-    randomTimeout = random.uniform(5, 10)
+    randomTimeout = random.uniform(10, 11)
     continueFlag = False
 
     while True:
@@ -39,7 +38,6 @@ def detection_worker():
             continue
         
         frame = scaleImage(frame, 0.5)
-        red, white = getRedWhite(frame)
 
         # 暂停检测？
         if pause_detection.is_set():
@@ -51,7 +49,7 @@ def detection_worker():
             # print("直播帧疑似有点多了")
             continueFlag = True
         
-        if ssimCheck(red, redT) > 0.7 and ssimCheck(white, whiteT)> 0.7:
+        if follow_icon_Check(frame, follow_icon) >= 0.6:
             frameRT = cv2.rectangle(frame, (460, 583), (533, 670), (0,255,0), 10)
             liveStreamFrameCount = 0
         else:
@@ -85,8 +83,6 @@ def detection_worker():
         
 
         cv2.imshow('CURRENT FRAME', frameRT)
-        cv2.imshow('red', red)
-        cv2.imshow('white', white)
 
 
         if eroticFrameCount >= 30 and not continueFlag and liveStreamFrameCount == 0:
@@ -99,13 +95,13 @@ def detection_worker():
             continue
     
         currtime = time.time()
-        if currtime - startime >= randomTimeout:
+        if currtime - startime >= randomTimeout and not pause_detection.is_set():
             action_queue.put("next")
             eroticFrameCount = 0
             liveStreamFrameCount = 0
             print("不喜欢这个。")
             startime = currtime
-            randomTimeout = random.uniform(5, 10)
+            randomTimeout = random.uniform(10, 11)
 
         if cv2.waitKey(1) == ord('q'):
             action_queue.put("quit")
@@ -118,23 +114,25 @@ def detection_worker():
 def click_worker():
     while True:
         action = action_queue.get()
+
         if action == "like":
             pause_detection.set()
             likeThisVideo()
             pause_detection.clear()
+
         elif action == "next":
             pause_detection.set()
             nextVideo()
             # empty queue
             while not action_queue.empty():
                 action_queue.get()
-            
             pause_detection.clear()
+        
         elif action == "send":
             pause_detection.set()
             sendToAllFriends()
-            
             pause_detection.clear()
+
         elif action == "quit":
             break
         action_queue.task_done()
