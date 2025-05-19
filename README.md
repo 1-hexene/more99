@@ -54,9 +54,9 @@ adb devices
 
 ## 使用方法
 
-### 1. 将手机画面投屏到虚拟摄像头 `/dev/video0`
+### 1. 将手机画面投屏到虚拟摄像头 `/dev/video4`
 
-我们使用 `v4l2loopback` 将 scrcpy 输出推送到 `/dev/video0`：
+我们使用 `v4l2loopback` 将 scrcpy 输出推送到 `/dev/video4`：
 
 #### 安装 v4l2loopback：
 
@@ -70,9 +70,9 @@ sudo apt install v4l2loopback-dkms
 sudo modprobe v4l2loopback devices=4
 ```
 
-#### 启动 scrcpy 并将画面导入到 `/dev/video0`：
+#### 启动 scrcpy 并将画面导入到 `/dev/video4`：
 
-请通过 `ls /dev/video*` 查看视频设备。如果您的计算机有连接摄像头，那么这个视频设备可能是/dev/video4或者更大的数值。
+请通过 `ls /dev/video*` 查看视频设备。如果您的计算机是摄像头连接的，那么这个视频设备可能是/dev/video4或者更大的数值。
 ```bash
 scrcpy --v4l2-sink=/dev/video4 --no-audio-playback
 ```
