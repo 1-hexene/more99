@@ -67,14 +67,16 @@ sudo apt install v4l2loopback-dkms
 #### 加载内核模块：
 
 ```bash
-sudo modprobe v4l2loopback video_nr=0 card_label="scrcpy" exclusive_caps=1
+sudo modprobe v4l2loopback devices=4
 ```
 
 #### 启动 scrcpy 并将画面导入到 `/dev/video0`：
 
+请通过 `ls /dev/video*` 查看视频设备。如果您的计算机有连接摄像头，那么这个视频设备可能是/dev/video4或者更大的数值。
 ```bash
-scrcpy --v4l2-sink=/dev/video0 --no-audio-playback
+scrcpy --v4l2-sink=/dev/video4 --no-audio-playback
 ```
+在play.py中也需要对`VideoCapture(x)`中的`x`进行调整。
 
 ---
 
