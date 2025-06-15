@@ -21,7 +21,7 @@ def scaleImage(image, scale):
 # 检测线程
 def detection_worker():
     results = None
-    model = YOLO("runs/classify/train/weights/best.pt")
+    model = YOLO("./best_rknn_model", task='classify')
     cam = cv2.VideoCapture(0)
     follow_icon = scaleImage(cv2.imread('template/original_fc.png', cv2.IMREAD_GRAYSCALE), 0.39)
 
